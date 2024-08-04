@@ -87,7 +87,7 @@ const Footer = () => {
           <span className="text-sm text-gray-500 sm:text-center dark:text-gray-400">
             © {new Date().getFullYear()}{" "}
             <Link href="/">
-              <a className=" hover:underline">Tadashi™</a>
+              <a className=" hover:underline">Kairoshi</a>
             </Link>
             . All Rights Reserved. Developed by{" "}
             <a
