@@ -72,59 +72,45 @@ const Profile = () => {
 
   useEffect(() => {
     const fetchPosts = async () => {
-      setIsLoading(true);
-      try {
-        const colRef = collection(firestore, `users/${user?.uid}/posts`);
-        const q = query(colRef, orderBy("timestamp", "desc"), limit(num));
+      if (!user?.uid) {
+        console.error("User UID is not available");
+        setIsLoading(false);
+        return;
+      }
 
-        onSnapshot(q, (snapshot) => {
+      const colRef = collection(firestore, `users/${user.uid}/posts`);
+      console.log("Collection Reference:", colRef);
+
+      const q = query(colRef);
+
+      const unsubscribe = onSnapshot(
+        q,
+        (snapshot) => {
+          console.log("Snapshot:", snapshot);
+          console.log("Snapshot Docs:", snapshot.docs);
+
+          const postsData = snapshot.docs.map((doc) => ({
+            ...doc.data(),
+            id: doc.id,
+          }));
+
+          console.log("Fetched Posts:", postsData);
+
+          setPosts(postsData);
           setIsLoading(false);
-          setPosts(
-            snapshot.docs.map((doc) => ({
-              ...doc.data(),
-              id: doc.id,
-            }))
-          );
-        });
-      } catch (error) {
-        console.log(error);
-        setIsLoading(false);
-      }
-    };
-    const fetchProfiles = async () => {
-      try {
-        const colRef = collection(firestore, `users/${user?.uid}/profiles`);
-        const q = query(colRef, orderBy("timestamp", "desc"), limit(num));
+        },
+        (error) => {
+          console.error("Error fetching posts:", error);
+          setIsLoading(false);
+        }
+      );
 
-        onSnapshot(q, (snapshot) => {
-          setSavedProfiles(
-            snapshot.docs.map((doc) => ({
-              id: doc.id,
-              ...doc.data(),
-            }))
-          );
-        });
-        setIsLoading(false);
-      } catch (error) {
-        console.log(error);
-      }
+      // Cleanup subscription on component unmount
+      return () => unsubscribe();
     };
-    if (user) {
-      fetchPosts();
-      fetchProfiles();
-    } else {
-      router.push("/");
-      toast.error("You must be logged in to view this page", {
-        position: "top-right",
-        autoClose: 5000,
-        theme,
-        hideProgressBar: false,
-        closeOnClick: true,
-        pauseOnHover: true,
-        draggable: true,
-      });
-    }
-  }, [user, num]);
+
+    fetchPosts();
+  }, [firestore, user, num]);
 
   return (
     <Layout title="Your Profile" description="Your Profile">
@@ -245,90 +231,184 @@ const Profile = () => {
         {posts.length > 0 && (
           <>
             <div className="mt-6 mb-3 font-bold text-xl">Saved Images</div>
-            <motion.div
-              layout
-              variants={parent}
-              initial="hidden"
-              animate="visible"
-              exit="exit"
-              className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3"
-            >
-              {posts.map((post) => (
-                <motion.div
-                  key={post?.id}
-                  layout
-                  variants={child}
-                  className="relative group rounded-lg aspect-square overflow-hidden border dark:border-none shadow-lg"
-                >
-                  {(post?.isCarousel || post?.isVideo) && (
-                    <div className="absolute p-2.5 top-2 right-2 text-white  flex items-center bg-black/20 backdrop-blur-sm rounded-lg shadow-lg">
-                      {post?.isCarousel && (
-                        <CollectionIcon className="rotate-180" />
+            {posts.map((post) => (
+              <motion.div
+                layout
+                variants={parent}
+                initial="hidden"
+                animate="visible"
+                exit="exit"
+                className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3"
+              >
+                {post.child_medias_hd ? (
+                  post.child_medias_hd.map((pst, index) => (
+                    <motion.div
+                      key={post?.id}
+                      layout
+                      variants={child}
+                      className="relative group rounded-lg aspect-square overflow-hidden border dark:border-none shadow-lg"
+                    >
+                      {pst?.type === "video" && (
+                        <div className="absolute p-2.5 top-1/3 right-1/2  text-white  flex items-center bg-black/20 backdrop-blur-sm rounded-lg shadow-lg">
+                          {pst?.type === "video" && (
+                            <PlayIcon style={{ color: "black" }} />
+                          )}
+                        </div>
                       )}
-                      {post?.isVideo && <PlayIcon />}
-                    </div>
-                  )}
-                  <button
-                    className="absolute top-2 left-2 p-2.5 opacity-100 pointer-events-auto sm:opacity-0 sm:pointer-events-none sm:group-hover:opacity-100 sm:group-hover:pointer-events-auto aspect-square  text-white bg-red-500 hover:bg-red-800 focus:ring-4 focus:ring-red-300 font-medium rounded-lg transition-all"
-                    type="button"
-                    onClick={() => deletePost(post?.id)}
-                  >
-                    <DeleteIcon />
-                  </button>
-                  <Link href={`./p/${post?.shortcode}`}>
-                    <a>
-                      <img
-                        src={post?.postImage || post?.thumbnail}
-                        alt="post"
-                        loading="lazy"
-                        className="block h-full w-full object-cover"
-                      />
-                    </a>
-                  </Link>
-                  <div className="absolute bottom-0 p-2 flex items-center gap-2 bg-white dark:bg-black/40 backdrop-blur-sm rounded-t-lg shadow-lg w-full">
-                    <Link href={`/user/${post?.user?.username}`}>
-                      <a>
-                        <img
-                          src={post?.user?.profilePic}
-                          alt={post?.user?.fullName}
-                          loading="lazy"
-                          className="rounded-full h-8 border aspect-square object-cover"
-                        />
-                      </a>
-                    </Link>
-                    <div className="flex items-center gap-2 flex-grow">
-                      <a
-                        href={`https://instagram.com/${post?.user?.username}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-ellipsis dark:text-white gap-2 inline-flex items-center text-black font-bold w-[70%]"
-                        title={post?.user?.fullName}
+                      <button
+                        className="absolute top-2 left-2 p-2.5 opacity-100 pointer-events-auto sm:opacity-0 sm:pointer-events-none sm:group-hover:opacity-100 sm:group-hover:pointer-events-auto aspect-square  text-white bg-red-500 hover:bg-red-800 focus:ring-4 focus:ring-red-300 font-medium rounded-lg transition-all"
+                        type="button"
+                        onClick={() => deletePost(post?.id)}
                       >
-                        {post?.user?.fullName?.slice(0, 20)}
-                        {post?.user?.fullName?.length >= 20 ? "... " : " "}
-                        {post?.user?.isVerified && (
-                          <VerifiedIcon
-                            className="text-blue-500 text-xs bg-white rounded-full"
-                            title="A verified account"
+                        <DeleteIcon />
+                      </button>
+                      <Link
+                        rel="noopener noreferrer"
+                        target="_blank"
+                        href={pst.url}
+                      >
+                        <a>
+                          {pst?.type === "video" ? (
+                            <div className="block h-full w-full object-cover"></div>
+                          ) : (
+                            <img
+                              src={pst.url}
+                              alt="post"
+                              loading="lazy"
+                              className="block h-full w-full object-cover"
+                            />
+                          )}
+                        </a>
+                      </Link>
+                      <div className="absolute bottom-0 p-2 flex items-center gap-2 bg-white dark:bg-black/40 backdrop-blur-sm rounded-t-lg shadow-lg w-full">
+                        <Link href={`/user/${post?.owner?.username}`}>
+                          <a>
+                            <img
+                              src={post?.owner?.profile_pic_url}
+                              alt={post?.owner?.full_name}
+                              loading="lazy"
+                              className="rounded-full h-8 border aspect-square object-cover"
+                            />
+                          </a>
+                        </Link>
+                        <div className="flex items-center gap-2 flex-grow">
+                          <a
+                            href={`https://instagram.com/${post?.owner?.username}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-ellipsis dark:text-white gap-2 inline-flex items-center text-black font-bold w-[70%]"
+                            title={post?.owner?.full_name}
+                          >
+                            {post?.owner?.full_name?.slice(0, 20)}
+                            {post?.owner?.full_name?.length >= 20
+                              ? "... "
+                              : " "}
+                            {post?.user?.is_verified && (
+                              <VerifiedIcon
+                                className="text-blue-500 text-xs bg-white rounded-full"
+                                title="A verified account"
+                              />
+                            )}
+                          </a>
+                        </div>
+                        <a
+                          href={`https://instagram.com/p/${post?.id}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="px-2"
+                        >
+                          <OpenIcon
+                            className="dark:text-white text-black"
+                            title="Open"
+                          />
+                        </a>
+                      </div>
+                    </motion.div>
+                  ))
+                ) : (
+                  <motion.div
+                    key={post?.id}
+                    layout
+                    variants={child}
+                    className="relative group rounded-lg aspect-square overflow-hidden border dark:border-none shadow-lg"
+                  >
+                    {post?.main_media_type === "video" && (
+                      <div className="absolute p-2.5 top-1/3 right-1/2  text-white  flex items-center bg-black/20 backdrop-blur-sm rounded-lg shadow-lg">
+                        {post?.main_media_type === "video" && (
+                          <PlayIcon style={{ color: "black" }} />
+                        )}
+                      </div>
+                    )}
+                    <button
+                      className="absolute top-2 left-2 p-2.5 opacity-100 pointer-events-auto sm:opacity-0 sm:pointer-events-none sm:group-hover:opacity-100 sm:group-hover:pointer-events-auto aspect-square  text-white bg-red-500 hover:bg-red-800 focus:ring-4 focus:ring-red-300 font-medium rounded-lg transition-all"
+                      type="button"
+                      onClick={() => deletePost(post?.id)}
+                    >
+                      <DeleteIcon />
+                    </button>
+                    <Link
+                      rel="noopener noreferrer"
+                      target="_blank"
+                      href={post.main_media_hd}
+                    >
+                      <a>
+                        {post?.main_media_type === "video" ? (
+                          <div className="block h-full w-full object-cover"></div>
+                        ) : (
+                          <img
+                            src={post.main_media_hd}
+                            alt="post"
+                            loading="lazy"
+                            className="block h-full w-full object-cover"
                           />
                         )}
                       </a>
+                    </Link>
+                    <div className="absolute bottom-0 p-2 flex items-center gap-2 bg-white dark:bg-black/40 backdrop-blur-sm rounded-t-lg shadow-lg w-full">
+                      <Link href={`/user/${post?.owner?.username}`}>
+                        <a>
+                          <img
+                            src={post?.owner?.profile_pic_url}
+                            alt={post?.owner?.full_name}
+                            loading="lazy"
+                            className="rounded-full h-8 border aspect-square object-cover"
+                          />
+                        </a>
+                      </Link>
+                      <div className="flex items-center gap-2 flex-grow">
+                        <a
+                          href={`https://instagram.com/${post?.owner?.username}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-ellipsis dark:text-white gap-2 inline-flex items-center text-black font-bold w-[70%]"
+                          title={post?.owner?.full_name}
+                        >
+                          {post?.owner?.full_name?.slice(0, 20)}
+                          {post?.owner?.full_name?.length >= 20 ? "... " : " "}
+                          {post?.user?.is_verified && (
+                            <VerifiedIcon
+                              className="text-blue-500 text-xs bg-white rounded-full"
+                              title="A verified account"
+                            />
+                          )}
+                        </a>
+                      </div>
+                      <a
+                        href={`https://instagram.com/p/${post?.id}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="px-2"
+                      >
+                        <OpenIcon
+                          className="dark:text-white text-black"
+                          title="Open"
+                        />
+                      </a>
                     </div>
-                    <a
-                      href={`https://instagram.com/p/${post?.id}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="px-2"
-                    >
-                      <OpenIcon
-                        className="dark:text-white text-black"
-                        title="Open"
-                      />
-                    </a>
-                  </div>
-                </motion.div>
-              ))}
-            </motion.div>
+                  </motion.div>
+                )}
+              </motion.div>
+            ))}
           </>
         )}
         {isLoading ? (

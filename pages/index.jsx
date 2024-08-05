@@ -39,28 +39,18 @@ const App = () => {
     setLink(linkFromClipboard);
   };
 
-  const savePostToDB = async (code) => {
+  const savePostToDB = async (data,shortcode) => {
     try {
-      const userDocRef = doc(firestore, `users/${user?.uid}/posts/${code}`);
+      const userDocRef = doc(firestore, `users/${user?.uid}/posts/${shortcode}`);
 
-      const postDetails = await fetchPostDetails(code);
-      const postDocRef = doc(firestore, `/posts/${code}`);
-      const postData = {
-        shortcode: postDetails?.shortcode || null,
-        caption: postDetails?.caption || null,
-        user: postDetails?.user || null,
-        likes: postDetails?.edge_media_preview_like.count || null,
-        // comments: postDetails?.comments || null,
-        thumbnail: postDetails?.thumbnail_src || null,
-        isVideo: postDetails?.isVideo || null,
-        isCarousel: postDetails?.isCarousel || null,
-        timestamp: serverTimestamp(),
-      };
-      setDoc(postDocRef, postData, {
-        merge: true,
-      });
+      // const postDetails = await fetchPostDetails(code);
+      console.log({ data });
+      // const postDocRef = doc(firestore, `/posts/${code}`);
+      // setDoc(postDocRef, postDetails, {
+      //   merge: true,
+      // });
       if (user)
-        setDoc(userDocRef, postData, {
+        setDoc(userDocRef, data, {
           merge: true,
         });
     } catch (error) {

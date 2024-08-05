@@ -1,6 +1,6 @@
 import axios from "axios";
 import { toast } from "react-toastify";
-require('dotenv').config();
+require("dotenv").config();
 
 export const fetchPost = async (
   shortcode,
@@ -29,7 +29,7 @@ export const fetchPost = async (
       hideProgressBar: true,
     });
 
-    savePostToDB(response.data.data);
+    savePostToDB(response.data.data,shortcode);
   } catch (error) {
     console.log(error);
     setIsLoading(false);
