@@ -1,5 +1,6 @@
 import axios from "axios";
 import { toast } from "react-toastify";
+require('dotenv').config();
 
 export const fetchPost = async (
   shortcode,
@@ -9,14 +10,13 @@ export const fetchPost = async (
   savePostToDB,
   theme
 ) => {
-  console.log({ shortcode });
   try {
     const options = {
       method: "GET",
       url: `https://instagram-bulk-scraper-latest.p.rapidapi.com/media_download_by_shortcode/${shortcode}`,
       headers: {
-        "x-rapidapi-key": process.env.RAPID_API_KEY,
-        "x-rapidapi-host": process.env.RAPID_API_HOST,
+        "x-rapidapi-key": "26e4081c63mshb3102badf90dd0bp111763jsn94c599f128e9",
+        "x-rapidapi-host": "instagram-bulk-scraper-latest.p.rapidapi.com",
       },
     };
 
@@ -45,8 +45,8 @@ export const fetchPostDetails = async (shortcode) => {
       method: "GET",
       url: `https://instagram-bulk-scraper-latest.p.rapidapi.com/media_info_from_shortcode/${shortcode}`,
       headers: {
-        "x-rapidapi-key": process.env.RAPID_API_KEY,
-        "x-rapidapi-host": process.env.RAPID_API_HOST,
+        "x-rapidapi-key": "26e4081c63mshb3102badf90dd0bp111763jsn94c599f128e9",
+        "x-rapidapi-host": "instagram-bulk-scraper-latest.p.rapidapi.com",
       },
     };
 
